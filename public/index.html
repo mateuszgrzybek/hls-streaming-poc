@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>HLS Streaming Audio Player</title>
+		<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+	</head>
+	<body>
+		<audio id="audio" controls></audio>
+		<button onclick="startConversion()">Convert WAV to HLS</button>
+
+		<script>
+			function startConversion() {
+				fetch('/convert')
+					.then((response) => response.text())
+					.then((data) => {
+						console.log(data);
+						playAudio();
+					})
+					.catch((error) => console.error('Error:', error));
+			}
+
+			function playAudio() {
+				var audio = document.getElementById('audio');
+				if (Hls.isSupported()) {
+					var hls = new Hls();
+					hls.loadSource('http://localhost:3000/playlist');
+					hls.attachMedia(audio);
+					hls.on(Hls.Events.MANIFEST_PARSED, function () {
+						console.log('Manifest parsed, will now attempt to play audio.');
+						audio.play();
+					});
+				} else if (audio.canPlayType('application/vnd.apple.mpegurl')) {
+					audio.src = '/audio/hls/index.m3u8';
+					audio.addEventListener('loadedmetadata', function () {
+						audio.play();
+					});
+				}
+			}
+		</script>
+	</body>
+</html>
