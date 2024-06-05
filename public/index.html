@@ -5,16 +5,21 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>HLS Streaming Audio Player</title>
 		<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+		<link rel="stylesheet" href="styles.css" />
 	</head>
 	<body>
-		<select name="audio-to-stream" id="audio-to-stream-select">
-			<option value="">--Please choose the audio file to stream--</option>
-		</select>
-		<audio id="audio" controls></audio>
-		<button onclick="startConversion()">Convert WAV to HLS</button>
+		<div class="wrapper">
+			<div class="loader"></div>
+			<select name="audio-to-stream" id="audio-to-stream-select">
+				<option value="">--Please choose the audio file to stream--</option>
+			</select>
+			<audio id="audio" controls></audio>
+			<button id="btn-prepare" onclick="startConversion()">Prepare HLS Stream</button>
+		</div>
 
 		<script>
 			document.addEventListener('DOMContentLoaded', function () {
+				toggleLoader(false);
 				fetch('/files/list')
 					.then((response) => response.json())
 					.then((data) => {
@@ -29,19 +34,43 @@
 					.catch((error) => console.error('Error:', error));
 			});
 
+			toggleLoader = (show) => {
+				const loader = document.querySelector('.loader');
+				if (show) {
+					loader.style.display = 'block';
+				} else {
+					loader.style.display = 'none';
+				}
+			};
+
 			function startConversion() {
+				const selectElement = document.getElementById('audio-to-stream-select');
+				const selectedFileName = selectElement.value;
+				if (!selectedFileName) {
+					return;
+				}
+
 				const audio = document.getElementById('audio');
 				audio.pause();
 				audio.src = '';
-				const selectedFileName = document.getElementById('audio-to-stream-select').value;
+
 				const selectedFileNameExtension = selectedFileName.split('.').pop();
+
+				const prepareBtn = document.getElementById('btn-prepare');
+				prepareBtn.disabled = true;
+				selectElement.disabled = true;
+				toggleLoader(true);
+
 				fetch(`/hls/prepare/${selectedFileName.split('.')[0]}&${selectedFileNameExtension}`)
-					.then((response) => response.text())
 					.then((data) => {
-						console.log(data);
 						playAudio();
 					})
-					.catch((error) => console.error('Error:', error));
+					.catch((error) => console.error('Error:', error))
+					.finally(() => {
+						prepareBtn.disabled = false;
+						selectElement.disabled = false;
+						toggleLoader(false);
+					});
 			}
 
 			function playAudio() {
@@ -51,7 +80,6 @@
 					hls.loadSource('http://localhost:3000/playlist');
 					hls.attachMedia(audio);
 					hls.on(Hls.Events.MANIFEST_PARSED, function () {
-						console.log('Manifest parsed, will now attempt to play audio.');
 						audio.play();
 					});
 				} else if (audio.canPlayType('application/vnd.apple.mpegurl')) {

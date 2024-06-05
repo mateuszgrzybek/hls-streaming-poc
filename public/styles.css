@@ -1,0 +1,33 @@
+body {
+	display: flex;
+	justify-content: center;
+	padding: 30px;
+}
+.wrapper {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	width: 500px;
+	height: 250px;
+}
+
+audio {
+	width: 100%;
+}
+
+.loader {
+	position: absolute;
+	bottom: 30px;
+	left: 220px;
+	width: 60px;
+	aspect-ratio: 6;
+	background: radial-gradient(circle closest-side, #000 90%, #0000) 0 / calc(100% / 3) 100% space;
+	clip-path: inset(0 100% 0 0);
+	animation: animate-loader 0.5s steps(4) infinite;
+}
+@keyframes animate-loader {
+	to {
+		clip-path: inset(0 -34% 0 0);
+	}
+}
