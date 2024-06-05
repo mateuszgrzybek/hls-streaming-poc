@@ -7,12 +7,35 @@
 		<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 	</head>
 	<body>
+		<select name="audio-to-stream" id="audio-to-stream-select">
+			<option value="">--Please choose the audio file to stream--</option>
+		</select>
 		<audio id="audio" controls></audio>
 		<button onclick="startConversion()">Convert WAV to HLS</button>
 
 		<script>
+			document.addEventListener('DOMContentLoaded', function () {
+				fetch('/files/list')
+					.then((response) => response.json())
+					.then((data) => {
+						const select = document.getElementById('audio-to-stream-select');
+						data.forEach((audio) => {
+							const option = document.createElement('option');
+							option.value = audio;
+							option.text = audio;
+							select.appendChild(option);
+						});
+					})
+					.catch((error) => console.error('Error:', error));
+			});
+
 			function startConversion() {
-				fetch('/convert')
+				const audio = document.getElementById('audio');
+				audio.pause();
+				audio.src = '';
+				const selectedFileName = document.getElementById('audio-to-stream-select').value;
+				const selectedFileNameExtension = selectedFileName.split('.').pop();
+				fetch(`/hls/prepare/${selectedFileName.split('.')[0]}&${selectedFileNameExtension}`)
 					.then((response) => response.text())
 					.then((data) => {
 						console.log(data);
@@ -22,9 +45,9 @@
 			}
 
 			function playAudio() {
-				var audio = document.getElementById('audio');
+				const audio = document.getElementById('audio');
 				if (Hls.isSupported()) {
-					var hls = new Hls();
+					const hls = new Hls();
 					hls.loadSource('http://localhost:3000/playlist');
 					hls.attachMedia(audio);
 					hls.on(Hls.Events.MANIFEST_PARSED, function () {
