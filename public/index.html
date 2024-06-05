@@ -5,6 +5,7 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>HLS Streaming Audio Player</title>
 		<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <link href='https://fonts.googleapis.com/css?family=Roboto' rel='stylesheet'>
 		<link rel="stylesheet" href="styles.css" />
 	</head>
 	<body>
@@ -13,6 +14,7 @@
 			<select name="audio-to-stream" id="audio-to-stream-select">
 				<option value="">--Please choose the audio file to stream--</option>
 			</select>
+			<p>Time: <span id="time-value">0</span> ms</p>
 			<audio id="audio" controls></audio>
 			<button id="btn-prepare" onclick="startConversion()">Prepare HLS Stream</button>
 		</div>
@@ -51,8 +53,10 @@
 				}
 
 				const audio = document.getElementById('audio');
+				const timeValue = document.getElementById('time-value');
 				audio.pause();
 				audio.src = '';
+				timeValue.innerText = 0;
 
 				const selectedFileNameExtension = selectedFileName.split('.').pop();
 
@@ -61,6 +65,7 @@
 				selectElement.disabled = true;
 				toggleLoader(true);
 
+				const startTime = performance.now();
 				fetch(`/hls/prepare/${selectedFileName.split('.')[0]}&${selectedFileNameExtension}`)
 					.then((data) => {
 						playAudio();
@@ -70,6 +75,9 @@
 						prepareBtn.disabled = false;
 						selectElement.disabled = false;
 						toggleLoader(false);
+
+						const endTime = performance.now();
+						timeValue.innerText = endTime - startTime;
 					});
 			}
 
