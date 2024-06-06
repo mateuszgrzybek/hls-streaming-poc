@@ -10,11 +10,12 @@ const port = 3000;
 
 const supportedExtensions = ['.wav', '.mp3'];
 const prepareHlsSegmentsAndManifest = (input, res) => {
+	const startTime = performance.now();
 	ffmpeg(input)
 		.outputOptions([
-			'-codec: copy',
 			'-hls_time 10',
 			'-hls_playlist_type vod',
+			'-hls_segment_type mpegts',
 			'-hls_base_url http://localhost:3000/hls/',
 			'-hls_segment_filename audio/hls/%03d.ts',
 		])
@@ -24,7 +25,8 @@ const prepareHlsSegmentsAndManifest = (input, res) => {
 			console.log('File name: ' + input);
 		})
 		.on('progress', (progress) => {
-			console.log('Processing: ' + progress.percent + '% done');
+			const timeStamp = performance.now();
+			console.log('Processing: ' + progress.percent + '% done.', 'Elapsed time: ' + (timeStamp - startTime) + 'ms');
 		})
 		.on('end', () => {
 			console.log('HLS segmentation finished');
@@ -37,6 +39,8 @@ const prepareHlsSegmentsAndManifest = (input, res) => {
 			res.status(500).send('Error during HLS segmentation');
 		})
 		.run();
+	const endTime = performance.now();
+	console.log(`HLS segmentation total execution time: ${endTime - startTime}ms`);
 };
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
@@ -67,30 +71,8 @@ app.get('/hls/prepare/:fileName&:fileExt', (req, res) => {
 
 	if (!supportedExtensions.includes(fileExt)) {
 		throw new Error('Unsupported file extension');
-	} else if (fileExt.includes('mp3')) {
-		prepareHlsSegmentsAndManifest(path.join(__dirname, 'audio', `${fileName}${fileExt}`), res);
 	} else {
-		const inputFilePath = path.join(__dirname, 'audio', `${fileName}${fileExt}`);
-		const outputFilePath = path.join(__dirname, 'audio', `${fileName}_converted.mp3`);
-
-		ffmpeg(inputFilePath)
-			.audioCodec('libmp3lame')
-			.toFormat('mp3')
-			.outputOptions(['-vn', '-ar 16000', '-ac 1', '-b:a 256k'])
-			.output(outputFilePath)
-			.on('start', function (commandLine) {
-				console.log('Spawned Ffmpeg with command: ' + commandLine);
-				console.log('File name: ' + fileName);
-			})
-			.on('end', () => {
-				console.log('Conversion to mp3 finished. Proceeding with creating HLS segments...');
-				prepareHlsSegmentsAndManifest(outputFilePath, res);
-			})
-			.on('error', (err) => {
-				console.error('Error during conversion to mp3', err);
-				res.status(500).send('Error during conversion to mp3');
-			})
-			.run();
+		prepareHlsSegmentsAndManifest(path.join(__dirname, 'audio', `${fileName}${fileExt}`), res);
 	}
 });
 
